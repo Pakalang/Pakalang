@@ -1,0 +1,73 @@
+#Confusion Matrix Accuracy, Precision, F1
+from scipy.io import loadmat
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.linear_model import SGDClassifier
+from sklearn.model_selection import cross_val_score #Percent Validation
+from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import cross_val_predict #ผลลัพธ์จากการทดลองแต่ละครั้ง
+from sklearn import metrics
+import itertools
+from sklearn.metrics import classification_report
+
+
+def displayConfusionMatrix(cm,cmap=plt.cm.GnBu):
+    classes=["Other Number","Number 5"] #ตัวเลขอื่นๆและตัวเลข 5 
+    plt.imshow(cm,interpolation='nearest',cmap=cmap)
+    plt.title("Confusion Matrix")
+    plt.colorbar()
+    trick_marks=np.arange(len(classes))
+    plt.xticks(trick_marks,classes)
+    plt.yticks(trick_marks,classes)
+    thresh=cm.max()/2
+    for i , j in itertools.product(range(cm.shape[0]),range(cm.shape[1])):
+        plt.text(j,i,format(cm[i,j],'d'),
+        horizontalalignment='center',
+        color='white' if cm[i,j]>thresh else 'black')
+
+    plt.tight_layout()
+    plt.ylabel('Actually')
+    plt.xlabel('Prediction')
+    plt.show()
+
+def displayImage(x):
+    plt.imshow(x.reshape(28,28),
+    cmap=plt.cm.binary,
+    interpolation='nearest')
+    plt.show()
+
+def displayPredict(clf,actually_y,x):
+    print('Actually=',actually_y)
+    print('Prediction=',clf.predict([x])[0])
+
+mnist_raw = loadmat('mnist-original.mat')  #Download File
+mnist = {
+    'data': mnist_raw['data'].T,
+    'target': mnist_raw['label'][0]
+}
+#ดูจำนวนข้อมูล ได้ 70000 ข้อมูล
+#print(mnist['data'].shape)
+#print(mnist['target'].shape)
+x, y = mnist['data'], mnist['target']
+
+#Training 1-60000 and Testing 60001-70000
+x_training, x_testing, y_training, y_testing = x[:60000], x[60000:], y[:60000], y[60000:]  #วิธีเขียน 1-60000 :60000,60000:
+
+# แบ่ง Class 0-9
+# ข้อมูลที่ 5000 ให้ Model; ตอบว่า ชุดข้อมูลเป็น class 5 หรือไม่ True, False
+#y_training เป็น Array คือ =[0,0,0,.......9,9,9]
+predict_number = 5500 #ลองเปลี่ยนตำแหน่งไปเรื่อยๆได้
+y_training_5 = (y_training==5)
+y_testing_5 = (y_testing==5)
+
+sgd_clf = SGDClassifier()
+sgd_clf.fit(x_training,y_training_5) 
+
+y_training_predict=cross_val_predict(sgd_clf,x_training,y_training_5,cv=4)
+cm=confusion_matrix(y_training_5,y_training_predict) #เปรียบเทียบค่าที่ได้จาก y_training_5 เทียบกับ y_presict
+
+y_testing_predict = sgd_clf.predict(x_testing)
+
+classes=['Other Number','Number 5']
+print(classification_report(y_testing_5,y_testing_predict,target_names=classes))
+
